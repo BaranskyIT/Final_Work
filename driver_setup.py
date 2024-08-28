@@ -6,6 +6,11 @@ def get_driver(headless=False):
     options = Options()
     if headless:
         options.add_argument("--headless")  # Запуск в фоновом режиме
+    
     service = Service(r"C:\Users\H1zhina\Desktop\python\Final_Work\chromedriver.exe")
     driver = webdriver.Chrome(service=service, options=options)
+    
+    # Открытие браузера в полноэкранном режиме
+    driver.maximize_window()
+    
     return driver

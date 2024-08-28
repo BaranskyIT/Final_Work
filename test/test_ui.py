@@ -1,86 +1,95 @@
-import time
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
+import unittest
+import sys
+import os
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import ElementClickInterceptedException
+from driver_setup import get_driver
+from utility import scroll_to_element
+from locators import Locators
+from constants import BASE_URL, ERROR_404_SEARCH_TERM
 
-# Функция для получения настроенного драйвера
-def get_driver(headless=False):
-    options = Options()
-    if headless:
-        options.add_argument("--headless")  # Запуск в фоновом режиме
-    service = Service(r"C:\Users\H1zhina\Desktop\python\Final_Work\chromedriver.exe")
-    driver = webdriver.Chrome(service=service, options=options)
-    return driver
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-def test_chitai_gorod_homepage():
-    driver = get_driver()  # Используем функцию get_driver
-    driver.get("https://www.chitai-gorod.ru/")
+class TestChitaiGorodUI(unittest.TestCase):
 
-    # Пауза для загрузки страницы
-    time.sleep(3)
+    def setUp(self):
+        self.driver = get_driver()
 
-    # Поиск элемента по локатору
-    element = driver.find_element(By.XPATH, "//div[text()='Книжный интернет-магазин «Читай-город»']")
+    def tearDown(self):
+        self.driver.quit()
+
+    def test_homepage_scroll(self):
+        self.driver.get(BASE_URL)
+        element = scroll_to_element(self.driver, Locators.CHITAI_GOROD_HOME_TEXT)
+        self.assertIsNotNone(element, "Элемент 'Книжный интернет-магазин «Читай-город»' не найден на странице")
+
+    def test_best_of_best_scroll(self):
+        self.driver.get(BASE_URL)
+
+        best_of_best_link = WebDriverWait(self.driver, 10).until(
+            EC.element_to_be_clickable(Locators.BEST_OF_BEST_LINK)
+        )
+        try:
+            best_of_best_link.click()
+        except ElementClickInterceptedException:
+            self.driver.execute_script("arguments[0].click();", best_of_best_link)
+
+        scroll_to_element(self.driver, Locators.BEST_OF_THE_BEST)
     
-    # Проверка, что элемент найден
-    assert element is not None
+    def test_search_error_404(self):
+        self.driver.get(BASE_URL)
 
-    # Пауза перед закрытием браузера
-    time.sleep(2)
+        search_box = WebDriverWait(self.driver, 10).until(
+            EC.presence_of_element_located(Locators.SEARCH_BOX)
+        )
+        search_box.click()
+        search_box.send_keys(ERROR_404_SEARCH_TERM)
+        search_box.send_keys(Keys.ENTER)
+        
+        error_404 = WebDriverWait(self.driver, 10).until(
+            EC.presence_of_element_located(Locators.ERROR_404_BOOK)
+        )
+        error_404.click()
+    
+    def test_open_cart(self):
+        self.driver.get(BASE_URL)
 
-    # Закрытие браузера
-    driver.quit()
+        cart_button = WebDriverWait(self.driver, 10).until(
+            EC.element_to_be_clickable(Locators.CART_BUTTON_HEADER)
+        )
+        try:
+            cart_button.click()
+        except ElementClickInterceptedException:
+            self.driver.execute_script("arguments[0].click();", cart_button)
+    
 
-def test_chitai_gorod_best_of_best():
-    driver = get_driver()  # Используем функцию get_driver
-    driver.get("https://www.chitai-gorod.ru/")
-    time.sleep(3)
+    def test_add_book_to_cart(self):
+        self.driver.get(BASE_URL)
 
-    # Найти и нажать на "Лучшие из лучших"
-    best_of_best = driver.find_element(By.XPATH, "//a[@class='app-title--link' and text()='Лучшие из лучших']")
-    best_of_best.click()
-    time.sleep(3)
+    # Найти и кликнуть на поисковое поле
+        search_box = WebDriverWait(self.driver, 10).until(
+        EC.element_to_be_clickable(Locators.SEARCH_BOX)
+    )
+        search_box.click()
+        search_box.send_keys(ERROR_404_SEARCH_TERM)
+        search_box.send_keys(Keys.ENTER)
 
-    # Найти и нажать на логотип
-    logo = driver.find_element(By.XPATH, "//svg[@class='header-logo__icon']")
-    logo.click()
-    time.sleep(3)
+    # Найти и кликнуть на книгу
+        error_404 = WebDriverWait(self.driver, 10).until(
+            EC.element_to_be_clickClickable(Locators.ERROR_404_BOOK)
+    )
+        error_404.click()
 
-    driver.quit()
+    # Найти и кликнуть на кнопку "Добавить в корзину"
+        add_to_cart_button = WebDriverWait(self.driver, 10).until(
+            EC.element_to_be_clickClickable(Locators.ADD_TO_CART_BUTTON)
+    )
+        add_to_cart_button.click()
 
-def test_search_404_error():
-    driver = get_driver()  # Используем функцию get_driver
-    driver.get("https://www.chitai-gorod.ru/")
-    time.sleep(3)
-
-    # Найти строку поиска и ввести "ошибка 404"
-    search_box = driver.find_element(By.XPATH, "//input[@placeholder='Хочу найти']")
-    search_box.click()
-    search_box.send_keys("ошибка 404")
-    search_box.send_keys(Keys.ENTER)
-    time.sleep(3)
-
-    # Найти и нажать на книгу "Ошибка 404"
-    error_404 = driver.find_element(By.XPATH, "//div[@class='product-title__head' and text()='Ошибка 404']")
-    error_404.click()
-    time.sleep(3)
-
-    # Нажать на кнопку "Добавить в корзину"
-    add_to_cart = driver.find_element(By.XPATH, "//button[@type='button' and contains(@class, 'product-offer-button')]")
-    add_to_cart.click()
-    time.sleep(3)
-
-    # Нажать на кнопку "Оформить"
-    checkout_button = driver.find_element(By.XPATH, "//button[contains(@class, 'chg-app-button--green') and descendant::div[text()='Оформить']]")
-    checkout_button.click()
-    time.sleep(3)
-
-    driver.quit()
+    # Проверка, что книга добавлена в корзину
+        self.assertIn("Ошибка 404", self.driver.page_source, "Книга не добавлена в корзину")
 
 if __name__ == "__main__":
-    # Запуск всех тестов
-    test_chitai_gorod_homepage()
-    test_chitai_gorod_best_of_best()
-    test_search_404_error()
+    unittest.main()
